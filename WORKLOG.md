@@ -24,3 +24,21 @@
 - Volume в Compose — не то же самое, что bind mount.
 - Healthcheck + depends_on решает race condition при старте.
 - `RealDictCursor` и `%s` плейсхолдеры против SQL-injection.
+## 2026-09-23: Nginx как reverse proxy
+
+**Задача:** добавить Nginx перед backend — единая точка входа, проксирование /api/* на Flask.
+
+**Выполнено:**
+- Конфиг nginx/nginx.conf: `listen 8080`, `upstream backend_upstream`, `location /api/`, `location = /`.
+- Nginx-сервис в docker-compose.yml, конфиг монтируется через volume (`:ro`).
+- Проверено: `/` возвращает заглушку, `/api/health` проксируется на backend.
+- Сравнены заголовки: прямой запрос → Server: Werkzeug, через Nginx → Server: nginx/1.27.5.
+- Полный цикл через Nginx: POST /api/shorten → 201, GET /api/<code> → 302.
+
+**Ошибки и решения:**
+- Сначала `ss -tlnp | grep 8080` показывал пусто — Nginx ещё не успел стартовать. После запуска порт появился.
+
+**Эксперимент с proxy_pass (главное):**
+- Со слэшем (`http://backend_upstream/`): Nginx срезает /api/, Flask видит `/health` → 200.
+- Без слэша (`http://backend_upstream`): Nginx оставляет /api/, Flask видит `/api/health` → 404.
+- Подтверждено логами backend-а. Правило запомнил: **со слэшем — срезает, без слэша — оставляет**.
