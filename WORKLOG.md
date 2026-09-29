@@ -42,3 +42,27 @@
 - Со слэшем (`http://backend_upstream/`): Nginx срезает /api/, Flask видит `/health` → 200.
 - Без слэша (`http://backend_upstream`): Nginx оставляет /api/, Flask видит `/api/health` → 404.
 - Подтверждено логами backend-а. Правило запомнил: **со слэшем — срезает, без слэша — оставляет**.
+
+
+## 2026-09-29: Frontend (HTML+JS) + отдача статики через Nginx
+
+**Задача:** HTML-страница с формой для создания коротких ссылок.
+
+**Выполнено:**
+- `frontend/index.html` — форма: input URL + кнопка + JS через `fetch('/api/shorten')`.
+- Nginx отдаёт статику через `try_files /index.html =404;` в `location = /`.
+- Nginx проксирует короткие ссылки: `location ~ ^/[A-Za-z0-9_-]+$` → backend (без слэша).
+- Volume `./frontend:/usr/share/nginx/html:ro` в docker-compose.yml.
+- **Проверено в браузере:** форма работает, ссылка `http://localhost:8080/BB_LUJ8C` создана.
+
+**Ошибки и решения:**
+- YAML: `nginx` был вложен в `backend` (неверный отступ) → 2 пробела на одном уровне.
+- `root + index` → Nginx искал файл в `/etc/nginx/html/index.html` (непонятная резолюция).
+  Решение: **`root + try_files /index.html =404;`** без `index`.
+- `alias` + `index` → путь склеивался (`index.htmlindex.html`) → 500.
+- Nginx не перечитывает конфиг без `restart` или `nginx -s reload`.
+
+**Что понял:**
+- `try_files` — самый гибкий способ отдать конкретный файл.
+- `alias` указывает на файл, `root` — на директорию.
+- **Канонический паттерн:** `root` + `try_files`.
