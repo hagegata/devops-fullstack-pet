@@ -66,3 +66,25 @@
 - `try_files` — самый гибкий способ отдать конкретный файл.
 - `alias` указывает на файл, `root` — на директорию.
 - **Канонический паттерн:** `root` + `try_files`.
+
+## 2026-09-30: Frontend (HTML + CSS + JS) и статика через Nginx
+
+**Задача:** добавить фронтенд — простую форму для создания коротких ссылок, отдаваемую Nginx как статика.
+
+**Выполнено:**
+- Созданы `frontend/index.html`, `frontend/style.css`, `frontend/app.js`.
+- Форма: поле URL + кнопка «Сократить», асинхронный запрос через `fetch` на `/api/shorten`.
+- В `nginx/nginx.conf` добавлен `location /` с `root /usr/share/nginx/html` и `index index.html`.
+- В `docker-compose.yml` смонтирован том `./frontend:/usr/share/nginx/html:ro`.
+- Проверено: `/` отдаёт HTML, `/style.css` и `/app.js` — 200 OK, `/api/*` — проксируется на backend.
+- Полный цикл: форма в браузере → POST /api/shorten → короткая ссылка → клик → редирект на GitHub.
+
+**Проблемы и решения:**
+- Сначала CSS и JS отдавались с `Content-Type: text/plain`. Причина: наш `nginx.conf` заменил стандартный и не подключал `mime.types`.
+- Решение: добавить `include /etc/nginx/mime.types;` и `default_type application/octet-stream;` в блок `http`.
+
+**Что понял:**
+- `location /` — самое общее правило, но Nginx выбирает самое специфичное (`/api/` побеждает).
+- `root` — это корень файловой системы для URL, не путать с `alias`.
+- Volume для статики — правильный подход: файлы меняются без пересборки образа Nginx.
+- MIME-типы — не роскошь, а стандарт.
