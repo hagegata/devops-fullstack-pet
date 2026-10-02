@@ -88,3 +88,27 @@
 - `root` — это корень файловой системы для URL, не путать с `alias`.
 - Volume для статики — правильный подход: файлы меняются без пересборки образа Nginx.
 - MIME-типы — не роскошь, а стандарт.
+
+## 2026-10-02: Kubernetes — Redis, Nginx, ConfigMap, NodePort
+
+**Задача:** завершить перенос всего стека в Kubernetes — добавить Redis и Nginx (с ConfigMap для конфига и статики).
+
+**Выполнено:**
+- `k8s/redis.yaml`: Deployment + Service (ClusterIP, порт 6379).
+- `k8s/nginx.yaml`: ConfigMap `nginx-config` (nginx.conf как inline), Deployment, Service типа NodePort (30080).
+- ConfigMap `frontend-static` создан через `kubectl create configmap --from-file`.
+- Все четыре сервиса в K8s: backend, postgres, redis, nginx.
+- Проверен полный цикл: `POST http://nginx:8080/api/shorten` → `{"short":"hFLaurt-"}` → запись в PostgreSQL.
+- `SELECT` из Postgres подтвердил две записи.
+
+**Проблемы и решения:**
+- YAML-ошибки отступов (`mapping values are not allowed`, `did not find expected '-' indicator`) — исправлены руками.
+- `docker cp` в `/tmp/` не работает для `kubectl create configmap` — как и с образом, нужно `/var/lib/`.
+- ConfigMap `frontend-static` создаётся **не из манифеста**, а через `kubectl create configmap --from-file`. В git лежит только nginx-config.
+
+**Что понял:**
+- ConfigMap — способ доставки конфигов и статики в поды (вместо volume-ов с хоста).
+- `subPath` в `volumeMounts` — монтирует **один ключ** ConfigMap как **файл**.
+- Без `subPath` монтируется вся папка.
+- NodePort открывает порт на каждой ноде кластера (диапазон 30000–32767).
+- YAML: отступы критичны, пробелы (не табы), одинаковый уровень = одинаковое количество.
