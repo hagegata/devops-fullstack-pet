@@ -1,0 +1,51 @@
+# Глобальные настройки
+namespace: default
+
+# Backend (Flask API)
+backend:
+  replicas: 1
+  image:
+    repository: shortener-backend
+    tag: v1
+    pullPolicy: Never    # образ загружен в kind локально
+  service:
+    type: ClusterIP
+    port: 5000
+  env:
+    redisHost: redis
+    redisPort: "6379"
+
+# PostgreSQL
+postgres:
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  storage: 1Gi
+  credentials:
+    user: shortener
+    password: shortener_pass
+    database: shortener_db
+  service:
+    port: 5432
+
+# Redis
+redis:
+  image:
+    repository: redis
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    port: 6379
+
+# Nginx
+nginx:
+  replicas: 1
+  image:
+    repository: nginx
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 8080
+    nodePort: 30080

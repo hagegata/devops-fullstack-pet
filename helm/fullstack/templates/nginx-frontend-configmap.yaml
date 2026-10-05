@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-static
+  labels:
+    app: nginx
+data:
+  index.html: |
+{{ .Files.Get "files/index.html" | indent 4 }}
+  style.css: |
+{{ .Files.Get "files/style.css" | indent 4 }}
+  app.js: |
+{{ .Files.Get "files/app.js" | indent 4 }}

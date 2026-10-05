@@ -1,0 +1,6 @@
+apiVersion: v2
+name: fullstack
+description: URL Shortener — Flask + PostgreSQL + Redis + Nginx
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
